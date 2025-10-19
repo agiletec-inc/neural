@@ -1,0 +1,44 @@
+services:
+  workspace:
+    image: node:24-bookworm
+    working_dir: /workspace
+    volumes:
+      # Source code (bidirectional sync)
+      - ./:/workspace
+      # Dependencies (container-only, Mac pollution prevention)
+      - pnpm-store:/root/.local/share/pnpm/store
+      - node_modules:/workspace/node_modules
+      # Rust/Cargo (for Tauri CLI)
+      - cargo_registry:/usr/local/cargo/registry
+      - cargo_git:/usr/local/cargo/git
+    ports:
+      - "1420:1420"  # Vite dev server
+      - "1421:1421"  # Vite HMR
+    environment:
+      - TAURI_DEV_HOST=0.0.0.0
+    command: sleep infinity
+    networks:
+      - default
+    # Install Rust + pnpm on startup
+    entrypoint: >
+      sh -c "
+        if ! command -v rustc > /dev/null 2>&1; then
+          echo 'Installing Rust...';
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y;
+        fi;
+        if ! command -v pnpm > /dev/null 2>&1; then
+          echo 'Installing pnpm...';
+          npm install -g pnpm@latest;
+        fi;
+        exec sleep infinity
+      "
+
+volumes:
+  pnpm-store:
+  node_modules:
+  cargo_registry:
+  cargo_git:
+
+networks:
+  default:
+    name: neural-network
